@@ -562,7 +562,12 @@ function showOver(){state='over';scr='over';ov.innerHTML=`<div class="box"><h2>$
 const MD={def:['Default','Survive the swarm. Reach LV 50 to rebirth. 1× cores.'],zones:['Zones','The red circle shrinks and drifts. Stay inside it, then race to the next one. Ambushes wait inside. 3× cores, but rebirths past 10 pay only +5.'],ext:['Extraction','Reach LV 50, find the extraction point, and hold it for 20s. 1× cores, +400 if you extract.']};
 /* ---------- leaderboard: ranked by rebirths (kills are shown but never affect rank); shared through the hosted db, falls back to this device ---------- */
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),liveName=s=>String(s||'').replace(/[^\w .\-]/g,'').slice(0,12),cleanName=s=>liveName(s).replace(/\s+/g,' ').trim();
-const lbSort=a=>a.slice().sort((p,q)=>(q.rb||0)-(p.rb||0)||(p.at||0)-(q.at||0)); // most rebirths first; ties go to whoever got there first
+const lbSort=a=>a.slice().sort((p,q)=>(q.rb||0)-(p.rb||0)||(q.k||0)-(p.k||0)||(p.at||0)-(q.at||0)); // most rebirths first, then most kills, then whoever got there first
+// rank numbers (identical rebirths+kills share a rank: 1,1,3) and display names (duplicate names get (1),(2)… in leaderboard order)
+function lbLabels(r){const rk=[],nm=[],cnt={},seen={},key=x=>String(x.n).toLowerCase();
+ r.forEach(x=>{cnt[key(x)]=(cnt[key(x)]||0)+1});
+ r.forEach((x,i)=>{const k=key(x);rk[i]=i&&(+x.rb||0)==(+r[i-1].rb||0)&&(+x.k||0)==(+r[i-1].k||0)?rk[i-1]:i+1;nm[i]=cnt[k]>1?x.n+' ('+(seen[k]=(seen[k]||0)+1)+')':x.n});
+ return{rk,nm}}
 let LBt=P.mode=='zones'?'zones':'def',LBd={},LBat=0,LBdb=null,LBuid=null,LBus=null,LBok=0,LBerr=0,LBnw=0;
 let LBhd='<li class="hd"><i></i><span>Player</span><b>Rebirths</b><em>Kills</em></li>',LBnil='<li class="nil">No scores yet — be the first!</li>',LBshown=null,LBrm=!!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches),LBnext=0,LBwhy='';
 /* ===== SHARED LEADERBOARD (Supabase) — paste your two values here; see supabase_setup.sql ===== */
@@ -572,7 +577,7 @@ async function sb(path,body){const r=await fetch(SB_URL+'/rest/v1/'+path,{method
 function uid(){let u='';try{u=localStorage.getItem('neonswarm_uid')||'';if(!u){u=crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2,12);localStorage.setItem('neonswarm_uid',u)}}catch(e){u=u||'tmp'+Math.random().toString(36).slice(2,12)}return u}
 async function lbInit(){LBdb=sbOn()?1:null;LBuid=sbOn()?uid():null;LBwhy=sbOn()?'':'leaderboard server not set up yet';return LBdb}
 async function lbFetch(){LBnext=Date.now()+10000;const t=LBt;await lbInit();let rows=null;LBerr=0;
- if(LBdb){try{rows=lbSort((await sb('scores?mode=eq.'+t+'&select=uid,n,rb,k,at&order=rb.desc,at.asc&limit=10')).map(d=>({n:d.n,rb:d.rb,k:d.k,at:d.at,u:d.uid})))}catch(e){LBerr=1}}
+ if(LBdb){try{rows=lbSort((await sb('scores?mode=eq.'+t+'&select=uid,n,rb,k,at&order=rb.desc,k.desc,at.asc&limit=10')).map(d=>({n:d.n,rb:d.rb,k:d.k,at:d.at,u:d.uid})))}catch(e){LBerr=1}}
  if(!rows)rows=lbSort(P.lb[t]||[]);
  LBd[t]=rows.slice(0,10);LBat=Date.now();if(t==LBt)lbRender()}
 function lbStatus(){const s=$('#lbs');if(!s)return;
@@ -591,12 +596,13 @@ function lbRender(){const el=$('#lbl');if(!el)return;const t=LBt,r=LBd[t];lbStat
  if(!r.length){if(anim){old.forEach(li=>li.classList.add('out'));setTimeout(()=>{const e=$('#lbl');if(e&&LBd[LBt]&&!LBd[LBt].length)e.innerHTML=LBnil},400)}else el.innerHTML=LBnil;return}
  const tops=new Map();if(anim)old.forEach((li,k)=>tops.set(k,li.getBoundingClientRect().top));
  if(!anim){el.innerHTML=LBhd;old.clear()}
- const seen=new Set();
+ const seen=new Set(),L=lbLabels(r);
  r.forEach((x,i)=>{const k=String(x.u||x.n);seen.add(k);let li=old.get(k);const nw=!li;
-  if(nw){li=document.createElement('li');li.dataset.k=k;li.innerHTML='<i></i><span></span><b></b><em></em>';li.children[1].textContent=x.n}
+  if(nw){li=document.createElement('li');li.dataset.k=k;li.innerHTML='<i></i><span></span><b></b><em></em>'}
+  li.children[1].textContent=L.nm[i];li.children[1].title=L.nm[i];
   const rb=+x.rb||0,kl=+x.k||0,bch=!nw&&li.children[2]._v!==rb,ech=!nw&&li.children[3]._v!==kl;
-  li.className=(i<3?'top':'')+(x.n==P.name?' me':'')+(anim&&nw?' in':'')+(anim&&!nw&&(bch||ech)?' up':'');
-  li.children[0].textContent=i+1;lbNum(li.children[2],'🔁 ',rb,anim&&bch);lbNum(li.children[3],'⚔ ',kl,anim&&ech);
+  li.className=(L.rk[i]<=3?'top':'')+((x.u?x.u===LBuid:x.n==P.name)?' me':'')+(anim&&nw?' in':'')+(anim&&!nw&&(bch||ech)?' up':'');
+  li.children[0].textContent=L.rk[i];lbNum(li.children[2],'🔁 ',rb,anim&&bch);lbNum(li.children[3],'⚔ ',kl,anim&&ech);
   el.appendChild(li)});
  old.forEach((li,k)=>{if(!seen.has(k))li.remove()});
  if(anim){const mv=[];tops.forEach((y,k)=>{if(!seen.has(k))return;const li=old.get(k),dy=y-li.getBoundingClientRect().top;if(Math.abs(dy)>1){li.style.transition='none';li.style.transform='translateY('+dy+'px)';mv.push(li)}});
