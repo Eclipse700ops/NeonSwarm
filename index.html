@@ -143,6 +143,11 @@ html,body{height:100%;margin:0;overflow:hidden;background:var(--bg);color:var(--
 .lb li.hd{background:none;padding-top:0;padding-bottom:0;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#8886a6}.lb li.hd b{color:inherit;font-weight:700}
 .lb li.me{outline:1px solid #22d3ee}.lb li.nil{display:block;text-align:center;color:#a5a3bd;background:none}
 .lb small{color:#8886a6;font-size:12px;margin-top:auto}
+.lb li{position:relative}.lb li.in{animation:lbIn .55s cubic-bezier(.2,.9,.3,1.2)}.lb li.up{animation:lbUp 1.6s ease-out}.lb li.out{transition:opacity .35s,transform .35s;opacity:0;transform:translateX(26px)}
+@keyframes lbIn{from{opacity:0;transform:translateX(-28px) scale(.96)}to{opacity:1;transform:none}}
+@keyframes lbUp{0%{background:#22d3ee55;box-shadow:0 0 18px #22d3ee99}100%{background:#ffffff0d;box-shadow:0 0 0 #0000}}
+.lb li b.tick,.lb li em.tick{animation:lbTick .7s ease-out}@keyframes lbTick{35%{transform:scale(1.3);color:#fff}}
+.lb small .live{display:inline-block;width:7px;height:7px;border-radius:50%;background:#34d399;margin-right:6px;animation:lbPulse 1.6s infinite}@keyframes lbPulse{50%{opacity:.25}}
 .ttl{margin:auto;width:100%;max-width:460px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:26px;text-align:center}
 .ttl .logo{font-size:clamp(54px,15vw,104px)}
 .nc{width:100%;box-sizing:border-box;display:flex;flex-direction:column;gap:12px;padding:20px;border-radius:22px;background:#0b0c18d0;border:1px solid #ffffff24;backdrop-filter:blur(10px);box-shadow:0 20px 60px #0009}
@@ -559,27 +564,51 @@ const MD={def:['Default','Survive the swarm. Reach LV 50 to rebirth. 1× cores.'
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),liveName=s=>String(s||'').replace(/[^\w .\-]/g,'').slice(0,12),cleanName=s=>liveName(s).replace(/\s+/g,' ').trim();
 const lbSort=a=>a.slice().sort((p,q)=>(q.rb||0)-(p.rb||0)||(p.at||0)-(q.at||0)); // most rebirths first; ties go to whoever got there first
 let LBt=P.mode=='zones'?'zones':'def',LBd={},LBat=0,LBdb=null,LBuid=null,LBus=null,LBok=0,LBerr=0,LBnw=0;
-async function lbInit(){if(LBok)return LBdb;try{const c=window.claude;if(!c||!c.use)return null;const[db,us]=await Promise.all([c.use('db'),c.use('user')]);LBus=us;LBuid=us?await us.id():null;LBdb=db&&LBuid?db:null}catch(e){LBdb=null}LBok=1;return LBdb}
-async function lbFetch(){const t=LBt,db=await lbInit();let rows=null;LBerr=0;
- if(db){try{rows=lbSort((await db.collection('lb2_'+t).orderBy('rb','desc').limit(30).get()).docs.map(d=>d.data()))}catch(e){LBerr=1}}
+/* ===== SHARED LEADERBOARD (Supabase) — paste your two values here; see supabase_setup.sql ===== */
+const SB_URL='https://ohegcepnnlldyeiozknx.supabase.co',SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9oZWdjZXBubmxsZHllaW96a254Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTU3MDc1MzksImV4cCI6MjExMTI4MzUzOX0.aR7LkEgAV3EPoEjhIhnNzGLySmvqO4spovfssFPu7cE';
+const sbOn=()=>!/YOUR-/.test(SB_URL+SB_KEY);
+async function sb(path,body){const r=await fetch(SB_URL+'/rest/v1/'+path,{method:body?'POST':'GET',headers:{apikey:SB_KEY,...(SB_KEY.startsWith('eyJ')?{Authorization:'Bearer '+SB_KEY}:{}),'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});if(!r.ok)throw new Error(r.status);const t=await r.text();return t?JSON.parse(t):null}
+function uid(){let u='';try{u=localStorage.getItem('neonswarm_uid')||'';if(!u){u=crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2,12);localStorage.setItem('neonswarm_uid',u)}}catch(e){u=u||'tmp'+Math.random().toString(36).slice(2,12)}return u}
+async function lbInit(){LBdb=sbOn()?1:null;LBuid=sbOn()?uid():null;LBwhy=sbOn()?'':'leaderboard server not set up yet';return LBdb}
+async function lbFetch(){LBnext=Date.now()+10000;const t=LBt;await lbInit();let rows=null;LBerr=0;
+ if(LBdb){try{rows=lbSort((await sb('scores?mode=eq.'+t+'&select=uid,n,rb,k,at&order=rb.desc,at.asc&limit=10')).map(d=>({n:d.n,rb:d.rb,k:d.k,at:d.at,u:d.uid})))}catch(e){LBerr=1}}
  if(!rows)rows=lbSort(P.lb[t]||[]);
- LBd[t]=rows.slice(0,10);LBat=Date.now();lbRender()}
-function lbRender(){const el=$('#lbl');if(!el)return;const r=LBd[LBt];
- el.innerHTML=r?(r.length?'<li class="hd"><i>#</i><span>Player</span><b>Rebirths</b><em>Kills</em></li>'+r.map((x,i)=>`<li class="${i<3?'top':''}${x.n==P.name?' me':''}"><i>${i+1}</i><span>${esc(x.n)}</span><b>🔁 ${+x.rb||0}</b><em>⚔ ${(+x.k||0).toLocaleString()}</em></li>`).join(''):'<li class="nil">No scores yet. Be the first.</li>'):'<li class="nil">Loading…</li>';
- $('#lbs').textContent=!LBat?'':LBdb?(LBerr?'Couldn’t reach the shared board · showing this device':LBnw?'View only · your account can’t post scores here':'Shared with everyone · updates every minute'):'Scores are saved on this device only'}
+ LBd[t]=rows.slice(0,10);LBat=Date.now();if(t==LBt)lbRender()}
+function lbStatus(){const s=$('#lbs');if(!s)return;
+ if(!LBat){s.textContent='';return}
+ if(!LBdb){s.textContent='Scores are saved on this device only'+(LBwhy?' · '+LBwhy:'');return}
+ if(LBerr){s.textContent='Couldn’t reach the shared board · showing this device';return}
+ s.innerHTML='<span class="live"></span>Live · shared with everyone · refreshing in '+Math.max(0,Math.ceil((LBnext-Date.now())/1000))+'s'+(LBnw?' · view only (your account can’t post scores)':'')}
+function lbNum(el,pre,to,anim){const from=el._v==null?to:el._v;el._v=to;cancelAnimationFrame(el._r);const show=v=>{el.textContent=pre+Math.round(v).toLocaleString()};
+ if(!anim||from===to){show(to);return}
+ el.classList.remove('tick');void el.offsetWidth;el.classList.add('tick');const t0=performance.now();
+ const f=now=>{const p=Math.min(1,(now-t0)/800),e=1-Math.pow(1-p,3);show(from+(to-from)*e);if(p<1)el._r=requestAnimationFrame(f)};el._r=requestAnimationFrame(f)}
+function lbRender(){const el=$('#lbl');if(!el)return;const t=LBt,r=LBd[t];lbStatus();
+ if(!r){el.innerHTML='<li class="nil">Loading…</li>';LBshown=null;return}
+ const old=new Map();el.querySelectorAll('li[data-k]').forEach(li=>old.set(li.dataset.k,li));
+ const anim=LBshown==t&&old.size>0&&!LBrm;LBshown=t;
+ if(!r.length){if(anim){old.forEach(li=>li.classList.add('out'));setTimeout(()=>{const e=$('#lbl');if(e&&LBd[LBt]&&!LBd[LBt].length)e.innerHTML=LBnil},400)}else el.innerHTML=LBnil;return}
+ const tops=new Map();if(anim)old.forEach((li,k)=>tops.set(k,li.getBoundingClientRect().top));
+ if(!anim){el.innerHTML=LBhd;old.clear()}
+ const seen=new Set();
+ r.forEach((x,i)=>{const k=String(x.u||x.n);seen.add(k);let li=old.get(k);const nw=!li;
+  if(nw){li=document.createElement('li');li.dataset.k=k;li.innerHTML='<i></i><span></span><b></b><em></em>';li.children[1].textContent=x.n}
+  const rb=+x.rb||0,kl=+x.k||0,bch=!nw&&li.children[2]._v!==rb,ech=!nw&&li.children[3]._v!==kl;
+  li.className=(i<3?'top':'')+(x.n==P.name?' me':'')+(anim&&nw?' in':'')+(anim&&!nw&&(bch||ech)?' up':'');
+  li.children[0].textContent=i+1;lbNum(li.children[2],'🔁 ',rb,anim&&bch);lbNum(li.children[3],'⚔ ',kl,anim&&ech);
+  el.appendChild(li)});
+ old.forEach((li,k)=>{if(!seen.has(k))li.remove()});
+ if(anim){const mv=[];tops.forEach((y,k)=>{if(!seen.has(k))return;const li=old.get(k),dy=y-li.getBoundingClientRect().top;if(Math.abs(dy)>1){li.style.transition='none';li.style.transform='translateY('+dy+'px)';mv.push(li)}});
+  if(mv.length){el.getBoundingClientRect();mv.forEach(li=>{li.style.transition='transform .65s cubic-bezier(.2,.8,.2,1)';li.style.transform=''});setTimeout(()=>mv.forEach(li=>{li.style.transition=''}),750)}}}
 function lbSubmit(){if(!P.name||G.mode=='ext')return;const m=G.mode,A=P.lb[m]=(P.lb[m]||[]);let me=A.find(r=>r.n==P.name);
  if(!me||G.rb>me.rb||(G.rb==me.rb&&G.kills>me.k)){me={n:P.name,rb:G.rb,k:G.kills,at:me&&G.rb==me.rb&&me.at||Date.now()};P.lb[m]=A.filter(r=>r.n!=P.name).concat(me)}
  P.lb[m]=lbSort(P.lb[m]).slice(0,10);
- const row=me;lbInit().then(async db=>{if(!db)return;try{const d=db.collection('lb2_'+m).doc(LBuid),s=await d.get(),o=s.exists?s.data():null;
-  if(!o||row.rb>o.rb||(row.rb==o.rb&&row.k>o.k))await d.set({n:o?o.n:row.n,rb:row.rb,k:row.k,at:o&&row.rb==o.rb&&o.at||row.at}); // the name on the board never changes once posted
-  LBnw=0;LBat=0}catch(e){LBnw=1}})}
-async function lbReset(){P.lb={def:[],zones:[]};P.bm={};LBd={};saveP();const db=await lbInit();let msg='Local leaderboard cleared';
- if(db){let own=false;try{own=!!(LBus&&await LBus.isOwner())}catch(e){}
-  if(own){try{for(const m of['def','zones']){const c=db.collection('lb2_'+m),q=await c.limit(1000).get();for(const d of q.docs)await c.doc(d.id).delete()}msg='🏆 Leaderboard reset for everyone'}catch(e){msg='Reset failed, try again'}}
-  else msg='Local board cleared · only the game owner can reset the shared board'}
- LBat=0;kpm=msg;kpo=1;if(state=='crates')crates()}
+ if(sbOn())sb('rpc/submit_score',{p_mode:m,p_uid:uid(),p_name:P.name,p_rb:G.rb,p_k:G.kills}).then(()=>{LBnw=0;LBat=0;LBnext=0}).catch(()=>{LBnw=1})} // the server keeps each player's best and never changes the posted name
+async function lbReset(){P.lb={def:[],zones:[]};P.bm={};LBd={};saveP();let msg='Local leaderboard cleared';
+ if(sbOn()){try{await sb('rpc/reset_leaderboard',{p_code:LB_CODE});msg='🏆 Leaderboard reset for everyone'}catch(e){msg='Reset failed · check your connection'}}
+ LBat=0;LBnext=0;kpm=msg;kpo=1;if(state=='crates')crates()}
 ov.addEventListener('input',e=>{if(e.target.id!='nm'||e.target.readOnly)return;const v=liveName(e.target.value);if(v!=e.target.value)e.target.value=v;const n=$('#nme');if(n)n.textContent=''});
-setInterval(()=>{if(state=='menu'&&!ov.hidden)lbFetch()},60000);
+setInterval(()=>{if(state!='menu'||ov.hidden)return;if(Date.now()>=LBnext)lbFetch();else lbStatus()},1000);
 /* ---------- title screen: pick a username once ---------- */
 function title(){state='title';scr='title';hud.hidden=true;if(!G.demo)demoGame();const lock=!!(P.nl&&P.name);
  ov.innerHTML=`<div class="ttl"><div><h1 class="logo">NEON <span>SWARM</span></h1><div class="tag">Survive the swarm</div></div>
@@ -598,7 +627,7 @@ function menu(){if(!P.name||!P.nl){title();return}
  <button class="btn big" data-a="play">▶ PLAY</button>
  <div class="nav"><button data-a="crates"><i>🎁</i>Armory<small>🔷 ${P.cores}</small></button><button data-a="enemies"><i>👾</i>Enemies<small>${Object.keys(EI).length} types</small></button><button data-a="weapons"><i>⚔️</i>Weapons<small>${U.length} upgrades</small></button></div></section>
  <aside class="pn lb"><div class="lbh"><h3>Leaderboard<span class="sub">Ranked by rebirths</span></h3><div class="lbt"><button class="${LBt=='def'?'on':''}" data-a="lbtab" data-t="def">Default</button><button class="${LBt=='zones'?'on':''}" data-a="lbtab" data-t="zones">Zones</button></div></div><ol id="lbl"></ol><small id="lbs"></small></aside></div>
- <footer class="hints"><span>🕹️ WASD or drag to move</span><span>💨 Space to dash</span><span>🎯 Auto-fire</span><span>1–9 pick upgrades</span></footer></div>`;ov.hidden=false;lbRender();if(Date.now()-LBat>15000||!LBd[LBt])lbFetch()}
+ <footer class="hints"><span>🕹️ WASD or drag to move</span><span>💨 Space to dash</span><span>🎯 Auto-fire</span><span>1–9 pick upgrades</span></footer></div>`;ov.hidden=false;lbRender();if(Date.now()-LBat>5000||!LBd[LBt])lbFetch()}
 $('#abilities').addEventListener('click',e=>{const b=e.target.closest('[data-ability]');if(b&&!b.disabled)selectAbility(+b.dataset.ability)});
  ov.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b||b.disabled)return;au();const a=b.dataset.a;if(a!='pick'&&a!='play')sfx('ui');
  if(a=='play')start();else if(a=='go')goTitle();else if(a=='resume'){state='play';ov.hidden=true}
