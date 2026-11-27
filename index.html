@@ -19,7 +19,9 @@ html,body{height:100%;margin:0;overflow:hidden;background:var(--bg);color:var(--
 .hud{position:absolute;inset:0;pointer-events:none;color:#eceaf6;z-index:2}
 .xpb{position:absolute;left:0;right:0;top:0;height:8px;background:#ffffff14}
 .xpb i{display:block;height:100%;width:0;background:linear-gradient(90deg,#22d3ee,#a78bfa);box-shadow:0 0 14px #22d3ee}
-#lv{position:absolute;top:14px;left:50%;transform:translateX(-50%);font-weight:800;letter-spacing:3px;font-size:13px;color:#bae6fd}
+#tm{position:absolute;top:10px;left:50%;transform:translateX(-50%);font-weight:800;font-size:22px;letter-spacing:2px;color:#fff;text-shadow:0 2px 12px #000;white-space:nowrap}
+#lv{position:absolute;top:39px;left:50%;transform:translateX(-50%);font-weight:800;letter-spacing:2px;font-size:12px;color:#bae6fd;white-space:nowrap}
+#gmul{position:absolute;top:59px;left:50%;transform:translateX(-50%);font-size:10px;letter-spacing:.5px;color:#c4b5fd;text-shadow:0 2px 8px #000;white-space:nowrap}
 .hp{position:absolute;left:12px;top:30px;width:min(240px,46vw);height:20px;border-radius:10px;background:#ffffff14;border:1px solid #ffffff2a;overflow:hidden}
 .hp i{display:block;height:100%;width:100%;background:linear-gradient(90deg,#fb7185,#f43f5e);transition:width .15s}
 .hp b{position:absolute;inset:0;text-align:center;font-size:12px;line-height:20px;font-weight:800}
@@ -167,16 +169,17 @@ html,body{height:100%;margin:0;overflow:hidden;background:var(--bg);color:var(--
 .adp .st{font-size:11px;padding:2px 8px;border-radius:999px;background:#ffffff14;color:#a5a3bd}.adp .st.play{background:#34d39922;color:#6ee7b7}
 .adev{display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:8px;margin-top:10px}.adev .btn{padding:12px 8px;font-size:14px}.adev .btn[disabled]{opacity:.35;cursor:not-allowed}
 .admsg{min-height:18px;margin:8px 0 2px;font-size:13px;color:#a5a3bd}
+.adtabs{display:flex;flex-wrap:wrap;justify-content:center;gap:7px;margin:14px 0}.adtarget{display:flex;align-items:center;justify-content:center;gap:10px;margin:0 0 12px;padding:10px 12px;border:1px solid #22d3ee55;border-radius:12px;background:#22d3ee0b}.adtgtlabel{font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#a5f3fc}.adtgt{max-width:100%;min-width:0;flex:1;padding:10px 12px;border-radius:9px;border:1px solid #ffffff35;background:#111827;color:#fff;font:600 13px 'Outfit',sans-serif}.adtab{font:700 13px 'Outfit',sans-serif;color:#cbd5e1;background:#ffffff0c;border:1px solid #ffffff26;border-radius:10px;padding:9px 15px;cursor:pointer}.adtab.on{color:#fff;border-color:#22d3ee;background:linear-gradient(100deg,#0891b2,#6d4bd1)}.adpanel{padding:12px;border:1px solid #ffffff1a;background:#ffffff08;border-radius:16px;text-align:left}.adpanel h3{margin:0 0 5px;font-size:16px}.adpanel p{font-size:12px;margin:4px 0 10px}.adpanel .adev{margin-top:8px}.adpanel .btn{min-height:42px}.adgroup{margin:10px 0 14px}.adgroup label{display:block;color:#a5a3bd;font-size:11px;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px}
 </style>
 </head>
 <body>
 <div id="g">
   <canvas id="c"></canvas>
   <div class="hud" id="hud" hidden>
-    <div class="xpb"><i id="xp"></i></div><div id="lv">LV 1</div>
+    <div class="xpb"><i id="xp"></i></div><div id="tm">0:00</div><div id="lv">LV 1</div><div id="gmul"></div>
     <div class="hp"><i id="hp"></i><b id="hpt"></b></div>
     <button id="mu">🔊</button>
-    <div class="st"><span id="tm">0:00</span><small id="kl">0 kills</small></div>
+    <div class="st"><small id="kl">0 kills</small></div>
     <div id="obj"></div><div id="abilities"></div><div id="toast"></div>
     <button id="dash"><span>DASH<small>SPACE</small></span></button>
   </div>
@@ -408,13 +411,13 @@ const U=[
 
 function newGame(){const B=bon();G={t:0,kills:0,boss:0,rb:0,rbp:0,lv:1,xp:0,need:5,pend:0,sel:null,sp:0,ring:32,nb:70,mode:'def',zn:null,zo:0,ex:null,won:0,ep:[],gt:5,nw:30,shake:0,punch:0,hf:0,wf:0,slow:0,dy:0,cb:0,lg:0,up:{},en:[],bl:[],bots:[],gm:[],pt:[],fx:[],xpm:1+B.xp,dcd:skCur().d0?0:1.3*(1-B.dcd),
  p:{x:0,y:0,vx:0,vy:0,hp:100+B.hp,max:100+B.hp,sp:200*(1+B.spd),r:12,inv:0,dash:0,dcd:0,fire:0,ang:0,mx:1,my:0,mag:80*(1+B.mag),pulse:3,tr:0},
- st:{dmg:1+B.dmg,rate:2.4*(1+B.rate),cnt:1,prc:0,nano:0,nspd:1,nova:0}};cam.x=cam.y=0;cam.z=1}
+ st:{dmg:1+B.dmg,rate:2.4*(1+B.rate),cnt:1,prc:0,nano:0,nspd:1,nova:0},adminMult:{dmg:1,enemy:1,reward:1},adminFastFire:false,adminSavedRate:2.4*(1+B.rate)};G.adminBaseXpm=G.xpm;cam.x=cam.y=0;cam.z=1}
 function demoGame(){const cx=cam.x,cy=cam.y;newGame();cam.x=cx;cam.y=cy;G.demo=1;Object.assign(G.st,{cnt:3,prc:1,nano:2,nspd:1.3,nova:1,rate:3.2,dmg:1.5});G.p.pulse=1.5}
 function toast(s){if(state!='play'||(G&&G.demo))return;const t=$('#toast');t.textContent=s;t.classList.remove('on');void t.offsetWidth;t.classList.add('on')}
 function burst(px,py,c,n,sp=170,k=0){for(let i=0;i<n&&G.pt.length<700;i++){const a=rnd(0,6.283),v=rnd(30,sp);G.pt.push({x:px,y:py,vx:Math.cos(a)*v,vy:Math.sin(a)*v,l:.55,m:.55,c,s:rnd(2,4.5),k})}}
 const ring=(px,py,m,c)=>G.fx.push({x:px,y:py,r:0,m,c});
-function spawn(ty,ang,dist,px,py){const T=ET[ty],a=ang??rnd(0,6.283),d=dist??spawnDist(),sc=(1+G.t/100)*(1+G.rb*.35);
- G.en.push({x:px??G.p.x+Math.cos(a)*d,y:py??G.p.y+Math.sin(a)*d,t:ty,r:T.r,hp:T.hp*sc,m:T.hp*sc,sp:T.sp*Math.min(1.9,1+Math.min(G.t/400,.5)+G.rb*.05),c:T.c,xp:T.xp,dm:T.dm*(1+G.rb*.2),n:T.n,fl:0,bc:0,ph:rnd(0,6),a:0,hb:T.hb,cd:rnd(1.5,2.5),oa:a,tm:rnd(2,4),md:0,arm:0,ar:0,ch:0,dr:Math.random()<.5?-1:1,dvx:0,dvy:0,sl:0,kx:0,ky:0})}
+function spawn(ty,ang,dist,px,py){const T=ET[ty],a=ang??rnd(0,6.283),d=dist??spawnDist(),sc=(1+G.t/100)*(1+G.rb*.35),em=G.adminMult?.enemy||1;
+ G.en.push({x:px??G.p.x+Math.cos(a)*d,y:py??G.p.y+Math.sin(a)*d,t:ty,r:T.r,hp:T.hp*sc*em,m:T.hp*sc*em,sp:T.sp*Math.min(1.9,1+Math.min(G.t/400,.5)+G.rb*.05),c:T.c,xp:T.xp,dm:T.dm*(1+G.rb*.2)*em,n:T.n,fl:0,bc:0,ph:rnd(0,6),a:0,hb:T.hb,cd:rnd(1.5,2.5),oa:a,tm:rnd(2,4),md:0,arm:0,ar:0,ch:0,dr:Math.random()<.5?-1:1,dvx:0,dvy:0,sl:0,kx:0,ky:0})}
 function kill(e){const i=G.en.indexOf(e);if(i<0)return;G.en.splice(i,1);G.kills++;const b=e.t=='b';
  if(e.t=='s'){sfx('split');for(let j=0;j<3;j++){spawn('m');const m=G.en[G.en.length-1];m.x=e.x+rnd(-16,16);m.y=e.y+rnd(-16,16)}}
  burst(e.x,e.y,e.c,b?60:11,b?320:200,1);burst(e.x,e.y,'#fff',b?20:3,120);ring(e.x,e.y,b?260:e.r*3.5,e.c);sfx('kill',b);
@@ -456,7 +459,7 @@ function hurt(n){const p=G.p;p.hp-=n;p.inv=HURT_IV;G.shake=16;G.hf=.9;burst(p.x,
 function dash(){if(state!='play'||G.p.dcd>0)return;const p=G.p;p.dash=.18;p.dcd=G.dcd;p.inv=Math.max(p.inv,.3);G.shake=6;sfx('dash')}
 const HOME=14; // homing strength (higher = sharper turns)
 function shoot(){const p=G.p,s=G.st,nx=p.x+Math.cos(p.ang)*18,ny=p.y+Math.sin(p.ang)*18,dd=e=>(e.x-nx)**2+(e.y-ny)**2,near=G.en.filter(e=>!e.nb&&!e.dz&&dd(e)<700*700).sort((a,b)=>dd(a)-dd(b));
- for(let i=0;i<s.cnt;i++){const b=p.ang+(i-(s.cnt-1)/2)*.14;G.bl.push({x:nx,y:ny,vx:Math.cos(b)*640,vy:Math.sin(b)*640,d:s.dmg*(LZ[P.eq]||LZ.cy).m,pr:s.prc,l:1,h:[],tg:near[i%near.length]||null})}
+ for(let i=0;i<s.cnt;i++){const b=p.ang+(i-(s.cnt-1)/2)*.14;G.bl.push({x:nx,y:ny,vx:Math.cos(b)*640,vy:Math.sin(b)*640,d:s.dmg*(LZ[P.eq]||LZ.cy).m*(G.adminMult?.dmg||1),pr:s.prc,l:1,h:[],tg:near[i%near.length]||null})}
  burst(nx,ny,'#bae6fd',3,220,1);sfx('shoot')}
 function fxUpd(dt){for(let i=G.pt.length-1;i>=0;i--){const q=G.pt[i];q.x+=q.vx*dt;q.y+=q.vy*dt;q.vx*=.96;q.vy*=.96;if((q.l-=dt)<=0)G.pt.splice(i,1)}
  for(let i=G.fx.length-1;i>=0;i--){const f=G.fx[i];f.r+=f.m*3*dt;if(f.r>=f.m)G.fx.splice(i,1)}}
@@ -567,7 +570,7 @@ function start(){newGame();G.mode=P.mode||'def';if(G.mode=='zones')G.zn={x:0,y:0
 function pause(){if(state!='play')return;state='pause';ov.innerHTML=`<div class="box"><h2>Paused</h2><p>Take a breath.</p><div class="row"><button class="btn" data-a="resume">Resume</button><button class="btn alt" data-a="quit">End run &amp; menu</button></div><small>Ending the run banks the cores you’ve earned so far.</small></div>`;ov.hidden=false}
 function die(){if(state!='play')return;state='dying';const p=G.p;G.dy=1.4;p.hp=0;p.inv=99;G.shake=34;G.punch=.1;G.hf=1;sfx('over');
  burst(p.x,p.y,'#67e8f9',70,380,1);burst(p.x,p.y,'#fff',30,240);ring(p.x,p.y,360,'#67e8f9')}
-function endRun(q){const zm=G.mode=='zones';G.rw=Math.floor((G.t/6+G.kills/12+G.boss*15+Math.min(G.rb,zm?10:1e9)*25)*(zm?3:1)+(zm?Math.max(0,G.rb-10)*5:0)+(G.won?400:0));G.nbst=G.mode!='ext'&&G.t>P.best;if(G.nbst)P.best=G.t;const hv=Object.keys(SK).filter(skOwn);P.kills=(P.kills||0)+G.kills;G.nsk=Object.keys(SK).filter(i=>skOwn(i)&&!hv.includes(i)).map(i=>SK[i].n);P.cores+=G.rw;P.runs++;lbSubmit();saveP();if(q)menu();else showOver()}
+function endRun(q){const zm=G.mode=='zones';G.rw=Math.floor(((G.t/6+G.kills/12+G.boss*15+Math.min(G.rb,zm?10:1e9)*25)*(zm?3:1)+(zm?Math.max(0,G.rb-10)*5:0)+(G.won?400:0))*(G.adminMult?.reward||1));G.nbst=G.mode!='ext'&&G.t>P.best;if(G.nbst)P.best=G.t;const hv=Object.keys(SK).filter(skOwn);P.kills=(P.kills||0)+G.kills;G.nsk=Object.keys(SK).filter(i=>skOwn(i)&&!hv.includes(i)).map(i=>SK[i].n);P.cores+=G.rw;P.runs++;lbSubmit();saveP();if(q)menu();else showOver()}
 function showOver(){state='over';scr='over';ov.innerHTML=`<div class="box"><h2>${G.won?'🚀 Extracted!':'You were overrun'}</h2><p>${G.mode=='ext'?(G.won?'Mission complete! +400 bonus cores':'Mode: Extraction · reach LV 50, then hold the extraction point'):G.nbst?'🏆 New best time!':'Best: '+fmtT(P.best)}</p><div class="stats"><div><b>${fmtT(G.t)}</b><small>survived</small></div><div><b>${G.kills}</b><small>kills</small></div><div><b>${G.lv}</b><small>level</small></div>${G.rb?`<div><b>${G.rb}</b><small>rebirths · ${G.mode=='zones'?'+75 🔷 each, +5 after 10':'+25 🔷 each'}</small></div>`:''}</div><div class="bal">+${G.rw} 🔷 cores · ${P.cores} total</div>${G.nsk&&G.nsk.length?`<p>🎨 New skin${G.nsk.length>1?'s':''} unlocked: <b>${G.nsk.join(', ')}</b></p>`:''}${G.mode!='ext'?`<p class="note">Leaderboard rank is by rebirths · this run: ${G.rb}</p>`:''}<div class="row"><button class="btn" data-a="play">Run it back</button><button class="btn alt" data-a="crates">🎁 Open crates</button><button class="btn alt" data-a="menu">Menu</button></div></div>`;ov.hidden=false}
 const MD={def:['Default','Survive the swarm. Reach LV 50 to rebirth. 1× cores.'],zones:['Zones','The red circle shrinks and drifts. Stay inside it, then race to the next one. Ambushes wait inside. 3× cores, but rebirths past 10 pay only +5.'],ext:['Extraction','Reach LV 50, find the extraction point, and hold it for 20s. 1× cores, +400 if you extract.']};
 /* ---------- leaderboard: ranked by rebirths (kills are shown but never affect rank); shared through the hosted db, falls back to this device ---------- */
@@ -627,13 +630,20 @@ async function lbReset(){P.lb={def:[],zones:[]};P.bm={};LBd={};saveP();let msg='
 ov.addEventListener('input',e=>{if(e.target.id!='nm'||e.target.readOnly)return;const v=liveName(e.target.value);if(v!=e.target.value)e.target.value=v;const n=$('#nme');if(n)n.textContent=''});
 setInterval(()=>{if(state!='menu'||ov.hidden)return;if(Date.now()>=LBnext)lbFetch();else lbStatus()},1000);
 /* ---------- title screen: pick a username once ---------- */
-/* ===== LIVE PLAYERS + ADMIN EVENTS (Supabase: heartbeat / admin_players / admin_send) ===== */
-const EVN={boss:['👹','Boss'],mega:['☠️','Triple boss'],ring:['⭕','Surrounded'],rush:['🔺','Dorito rush'],tanks:['🛡️','Tank squad'],bombs:['💥','Bombs'],flank:['🌀','Flank'],swarm:['🐛','Swarm'],heal:['💚','Heal'],warp:['⏳','Time warp']};
-let ADQ=[],ADq='',ADrows=null,ADmsg='',ADsel='',ADhb=0;
+/* ===== LIVE PLAYERS + ADMIN CONTROL CENTRE (Supabase) ===== */
+const EVN={boss:['👹','Boss'],mega:['☠️','Triple boss'],ring:['⭕','Surrounded'],rush:['🔺','Dorito rush'],tanks:['🛡️','Tank squad'],bombs:['💥','Bombs'],flank:['🌀','Flank'],swarm:['🐛','Swarm'],heal:['💚','Heal'] ,warp:['⏳','Time warp']};
+const ADCMD={kick:'Kick player',refresh:'Force refresh all pages',clear:'Clear all enemies',fastfire_on:'0.01s shooting cooldown ON',fastfire_off:'0.01s shooting cooldown OFF',enemy_05:'Enemy difficulty 0.5×',enemy_1:'Enemy difficulty 1×',enemy_15:'Enemy difficulty 1.5×',enemy_2:'Enemy difficulty 2×',enemy_3:'Enemy difficulty 3×',dmg_05:'Player damage 0.5×',dmg_1:'Player damage 1×',dmg_15:'Player damage 1.5×',dmg_2:'Player damage 2×',dmg_3:'Player damage 3×',reward_05:'Rewards 0.5×',reward_1:'Rewards 1×',reward_15:'Rewards 1.5×',reward_2:'Rewards 2×',reward_3:'Rewards 3×'};
+let ADQ=[],ADq='',ADrows=null,ADmsg='',ADsel='',ADhb=0,ADtab='players',ADKicked=false;
 const adStat=()=>{const pl=state=='play'&&!G.demo;return pl?{st:'play',m:G.mode,t:Math.floor(G.t),k:G.kills,rb:G.rb,lv:G.lv}:{st:state=='pause'||state=='lvl'||state=='dying'?state:'menu'}};
-async function adBeat(){if(!sbOn()||!P.name)return;try{const c=await sb('rpc/heartbeat',{p_uid:uid(),p_name:P.name,p_info:adStat()});if(Array.isArray(c))c.forEach(x=>ADQ.push({c:x,t:Date.now()}))}catch(e){}}
-setInterval(()=>{if(document.hidden)return;const pl=state=='play'&&!G.demo;if(Date.now()-ADhb>=(pl?1000:15000)){ADhb=Date.now();adBeat()}},1000);
+async function adBeat(){if(!sbOn()||!P.name||ADKicked)return;try{const c=await sb('rpc/heartbeat',{p_uid:uid(),p_name:P.name,p_info:adStat()});if(Array.isArray(c))c.forEach(x=>ADQ.push({c:x,t:Date.now()}))}catch(e){}}
+setInterval(()=>{if(document.hidden||ADKicked)return;const pl=state=='play'&&!G.demo;if(Date.now()-ADhb>=(pl?1000:15000)){ADhb=Date.now();adBeat()}},1000);
 function adDo(c){const p=G.p,ring=(ty,n,d)=>{for(let i=0;i<n;i++)spawn(ty,i/n*6.283+rnd(-.1,.1),d)};
+ if(c=='refresh'){location.reload();return}
+ if(c=='kick'){ADKicked=true;state='kicked';hud.hidden=true;ov.innerHTML='<div class="box"><h2>Session ended</h2><p>You have been disconnected by an administrator.</p></div>';ov.hidden=false;return}
+ if(c=='clear'){G.en.length=0;G.ep.length=0;toast('ARENA CLEARED');sfx('ui');return}
+ if(c=='fastfire_on'){if(!G.adminFastFire)G.adminSavedRate=G.st.rate;G.adminFastFire=true;G.st.rate=100;p.fire=0;toast('0.01s FIRE COOLDOWN');return}
+ if(c=='fastfire_off'){G.adminFastFire=false;G.st.rate=G.adminSavedRate||2.4;p.fire=0;toast('NORMAL FIRE RATE');return}
+ const mm=c.match(/^(enemy|dmg|reward)_(05|1|15|2|3)$/);if(mm){const v=({'05':.5,'1':1,'15':1.5,'2':2,'3':3})[mm[2]],k=mm[1],old=G.adminMult[k]||1;G.adminMult[k]=v;if(k=='enemy'){const f=v/old;for(const e of G.en){e.hp*=f;e.m*=f;e.dm*=f}}else if(k=='reward')G.xpm=G.adminBaseXpm*v;toast(k.toUpperCase()+' '+v+'×');sfx('ui');return}
  if(c=='boss'){toast('BOSS');sfx('boss');G.shake=14;spawn('b')}
  else if(c=='mega'){toast('TRIPLE BOSS');sfx('boss');G.shake=20;for(let i=0;i<3;i++)spawn('b',i/3*6.283+rnd(0,1),380)}
  else if(c=='ring'){toast('SURROUNDED');sfx('ring');G.shake=8;for(let i=0;i<26;i++)spawn(RT[Math.random()*RT.length|0],i/26*6.283,320)}
@@ -644,21 +654,27 @@ function adDo(c){const p=G.p,ring=(ty,n,d)=>{for(let i=0;i<n;i++)spawn(ty,i/n*6.
  else if(c=='swarm'){toast('SWARM');sfx('ring');G.shake=8;for(let i=0;i<60;i++)spawn(i%5?'g':'o',rnd(0,6.283),rnd(380,520))}
  else if(c=='heal'){p.hp=p.max;toast('HEALED');sfx('ui')}
  else if(c=='warp'){toast('TIME WARP');sfx('boss');G.slow=3}}
-function adRun(){const now=Date.now();ADQ=ADQ.filter(x=>now-x.t<60000);if(ADQ.length&&state=='play'&&!G.demo)adDo(ADQ.shift().c)} // events wait in a queue while you're paused or choosing an upgrade
+function adRun(){const now=Date.now();ADQ=ADQ.filter(x=>now-x.t<60000);for(let i=0;i<ADQ.length;){const c=ADQ[i].c,urgent=c=='refresh'||c=='kick';if(urgent||(state=='play'&&!G.demo)){ADQ.splice(i,1);adDo(c);if(ADKicked)return}else i++}}
 const adChip=i=>{i=i||{};return i.st=='play'?['In run','play']:i.st=='pause'?['Paused','']:i.st=='dying'?['Died','']:i.st=='lvl'?['Upgrading','play']:['In menus','']};
 function adList(){const el=$('#adl');if(!el)return;const all=ADrows||[],q=ADq.trim().toLowerCase(),A=q?all.filter(r=>String(r.n).toLowerCase().includes(q)):all,live=all.filter(r=>r.info&&r.info.st=='play').length;
  el.innerHTML=`<button class="adp all ${ADsel=='all'?'on':''}" data-a="adsel" data-u="all"><b>👥 Everyone in a run</b><span class="st play">${ADrows?live:"all"}</span></button>`+(A.length?A.map(r=>{const i=r.info||{},c=adChip(i),pl=i.st=='play',t=Math.floor(+i.t||0);return `<button class="adp ${ADsel==r.uid?'on':''}" data-a="adsel" data-u="${esc(r.uid)}"><b>${esc(r.n)}</b><span class="st ${c[1]}">${c[0]}</span><small>${pl?`${i.m=='zones'?'Zones':'Default'} · ${Math.floor(t/60)}:${String(t%60).padStart(2,'0')} · ${+i.k||0} kills · ${+i.rb||0} rebirths · LV ${+i.lv||1}`:'Not in a run'}</small></button>`}).join(''):ADrows?'<p class="note">'+(q?'No players match that search.':'Nobody else is online right now.')+'</p>':'<p class="note">Press Refresh players to load the list.</p>')}
-function adDraw(){if(state!='admin')return;
- const A=ADrows||[],who=ADsel=='all'?'everyone in a run':(A.find(r=>r.uid==ADsel)||{}).n;
- ov.innerHTML=`<div class="box wide xl adm"><h2>🛠️ Admin <small>· ${ADrows?A.length+' online':'list not loaded'}</small></h2><p class="note">Pick a target, then press an event. The server is only contacted when you press an event or Refresh.</p>${A.length>8?`<input id="adq" class="adin" placeholder="Search ${A.length} players" value="${esc(ADq)}" autocomplete="off">`:''}<div class="adl" id="adl"></div>
- <div class="note">Target: <b>${who?esc(who):'none'}</b></div><div class="adev">${Object.entries(EVN).map(([k,v])=>`<button class="btn" data-a="adev" data-c="${k}">${v[0]} ${v[1]}</button>`).join('')}</div>
- <div class="admsg" id="adm">${esc(ADmsg)}</div><div class="row"><button class="btn alt" data-a="adrf">Refresh players</button><button class="btn alt" data-a="adback">Back</button></div></div>`;adList()}
-function admin(){state='admin';ADmsg='';ADsel='all';ADq='';adDraw()}
+function adButtons(items){return items.map(c=>`<button class="btn ${c[2]?'alt':''}" data-a="adev" data-c="${c[0]}">${c[1]}</button>`).join('')}
+function adDraw(){if(state!='admin')return;const A=ADrows||[],who=ADsel=='all'?'everyone in a run':(A.find(r=>r.uid==ADsel)||{}).n;
+ const tabs=[['players','Players'],['combat','Combat'],['world','World'],['multipliers','Multipliers'],['server','Server']];
+ const targetControl=`<div class="adt target adtarget"><label class="adtgtlabel" for="adtgt">Apply to</label><select id="adtgt" class="adtgt"><option value="all" ${ADsel=='all'?'selected':''}>Everyone currently in a run</option>${A.map(r=>`<option value="${esc(r.uid)}" ${ADsel==r.uid?'selected':''}>${esc(r.n)} · ${adChip(r.info)[0]}</option>`).join('')}</select></div>`;
+ let panel='';
+ if(ADtab=='players')panel=`<div class="adpanel"><h3>Player management</h3><p>Use the Apply to selector above to choose one player or everyone currently in a run. Kicking ends their current session; they can reconnect.</p>${A.length>8?`<input id="adq" class="adin" placeholder="Search ${A.length} players" value="${esc(ADq)}" autocomplete="off">`:''}<div class="adl" id="adl"></div><div class="note">Target: <b>${who?esc(who):'none'}</b></div><div class="adev">${adButtons([['kick','Disconnect selected player']])}</div></div>`;
+ if(ADtab=='combat')panel=`<div class="adpanel"><h3>Combat controls</h3><p>Choose a target using Apply to above. These controls affect that player or everyone currently in a run.</p><div class="adev">${adButtons([['fastfire_on','⚡ 0.01s shooting cooldown ON'],['fastfire_off','Restore normal shooting cooldown'],['heal','💚 Heal to full']])}</div></div>`;
+ if(ADtab=='world')panel=`<div class="adpanel"><h3>World controls</h3><p>Choose a target using Apply to above, then change the current arena without restarting the run.</p><div class="adev">${adButtons([['clear','Clear all enemies'],['boss','👹 Spawn boss'],['mega','☠️ Triple boss'],['ring','⭕ Surrounded'],['rush','🔺 Dorito rush'],['tanks','🛡️ Tank squad'],['bombs','💥 Bombs'],['flank','🌀 Flank'],['swarm','🐛 Swarm'],['warp','⏳ Time warp']])}</div></div>`;
+ if(ADtab=='multipliers')panel=`<div class="adpanel"><h3>Global multipliers</h3><p>Choose one player or everyone using Apply to above. Changes last for the current run.</p><div class="adgroup"><label>Player damage</label><div class="adev">${adButtons([['dmg_05','0.5×'],['dmg_1','1×'],['dmg_15','1.5×'],['dmg_2','2×'],['dmg_3','3×']])}</div></div><div class="adgroup"><label>Enemy difficulty (health + damage)</label><div class="adev">${adButtons([['enemy_05','0.5×'],['enemy_1','1×'],['enemy_15','1.5×'],['enemy_2','2×'],['enemy_3','3×']])}</div></div><div class="adgroup"><label>XP and core rewards</label><div class="adev">${adButtons([['reward_05','0.5×'],['reward_1','1×'],['reward_15','1.5×'],['reward_2','2×'],['reward_3','3×']])}</div></div></div>`;
+ if(ADtab=='server')panel=`<div class="adpanel"><h3>Server / maintenance</h3><p>Force-refreshes every recently online browser tab. Use this when deploying a maintenance update. Players will reload the game page.</p><div class="adev">${adButtons([['refresh','↻ Force refresh all pages']])}</div></div>`;
+ ov.innerHTML=`<div class="box wide xl adm"><h2>Admin Control Centre <small>· ${ADrows?A.length+' online':'list not loaded'}</small></h2><div class="admsg" id="adm">${esc(ADmsg)}</div><div class="adtabs">${tabs.map(t=>`<button class="adtab ${ADtab==t[0]?'on':''}" data-a="adtab" data-tab="${t[0]}">${t[1]}</button>`).join('')}</div>${targetControl}${panel}<div class="row"><button class="btn alt" data-a="adrf">Refresh players</button><button class="btn alt" data-a="adback">Back</button></div></div>`;if(ADtab=='players')adList()}
+function admin(){state='admin';ADmsg='';ADsel='all';ADq='';ADtab='players';adDraw()}
 ov.addEventListener('input',e=>{if(e.target.id=='adq'){ADq=e.target.value;adList()}});
+ov.addEventListener('change',e=>{if(e.target.id=='adtgt'){ADsel=e.target.value;adDraw()}});
 async function adLoad(){try{const r=await sb('rpc/admin_players',{});ADrows=Array.isArray(r)?r:[];ADmsg=''}catch(e){ADmsg=e.message=='404'?'Admin SQL not installed yet (404)':'Could not reach the server ('+e.message+')'}adDraw()}
-async function adSend(c){const r=(ADrows||[]).find(x=>x.uid==ADsel);if(ADsel!='all'&&!r){ADmsg='That player is not in the list: press Refresh players';const m=$('#adm');if(m)m.textContent=ADmsg;return}
- try{const n=await sb('rpc/admin_send',{p_uid:ADsel,p_cmd:c});ADmsg=ADsel=='all'?`Sent ${EVN[c][1]} to ${n} player${n==1?'':'s'}`:`Sent ${EVN[c][1]} to ${r.n}`}catch(e){ADmsg=e.message=='404'?'Admin SQL not installed yet (404)':'Send failed ('+e.message+')'}
- const m2=$('#adm');if(m2)m2.textContent=ADmsg}
+async function adSend(c){const target=c=='refresh'?'all':ADsel,r=(ADrows||[]).find(x=>x.uid==target);if(target!='all'&&!r){ADmsg='That player is not in the list: press Refresh players';const m=$('#adm');if(m)m.textContent=ADmsg;return}
+ try{const n=await sb('rpc/admin_send',{p_uid:target,p_cmd:c});ADmsg=c=='refresh'?`Refresh sent to ${n} online player${n==1?'':'s'}`:target=='all'?`Sent ${ADCMD[c]||EVN[c]?.[1]||c} to ${n} player${n==1?'':'s'}`:`Sent ${ADCMD[c]||EVN[c]?.[1]||c} to ${r.n}`}catch(e){ADmsg=e.message=='404'?'Admin SQL not installed yet (404)':'Send failed ('+e.message+')'}const m2=$('#adm');if(m2)m2.textContent=ADmsg}
 function title(){state='title';scr='title';hud.hidden=true;if(!G.demo)demoGame();const lock=!!(P.nl&&P.name);
  ov.innerHTML=`<div class="ttl"><div><h1 class="logo">NEON <span>SWARM</span></h1><div class="tag">Survive the swarm</div></div>
  <div class="nc"><label for="nm">Username</label><input id="nm" maxlength="12" autocomplete="off" spellcheck="false" placeholder="Username" value="${esc(P.name||'')}" ${lock?'readonly':''}>
@@ -681,7 +697,7 @@ $('#abilities').addEventListener('click',e=>{const b=e.target.closest('[data-abi
  ov.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b||b.disabled)return;au();const a=b.dataset.a;if(a!='pick'&&a!='play')sfx('ui');
  if(a=='play')start();else if(a=='go')goTitle();else if(a=='resume'){state='play';ov.hidden=true}
  else if(a=='crates'){armTab='crates';crates()}else if(a=='armtab'){armTab=b.dataset.tab;crates()}else if(a=='enemies')enemies();else if(a=='weapons')weaponsPage();else if(a=='lbtab'){LBt=b.dataset.t;menu()}else if(a=='open')openCrate(b.dataset.k,+b.dataset.n);else if(a=='mode'){P.mode=b.dataset.m;if(P.mode!='ext')LBt=P.mode;saveP();menu()}else if(a=='eq'){const i=b.dataset.id;if(i=='cy'||P.ls[i]){P.eq=i;saveP();crates()}}else if(a=='eqs'){const i=b.dataset.id;if(SK[i]&&skOwn(i)){P.sk=i;saveP();crates()}}else if(a=='kp'){kpo=!kpo;kpm='';kpv='';rst=0;crates()}else if(a=='kd')kd(b.dataset.d);else if(a=='kc'){kpv='';kpm='';kpShow()}else if(a=='ke')ke();else if(a=='back')scr=='over'?showOver():menu();else if(a=='menu')menu();else if(a=='quit')endRun(1)
- else if(a=='adsel'){ADsel=b.dataset.u;adDraw()}else if(a=='adev')adSend(b.dataset.c);else if(a=='adrf')adLoad();else if(a=='adback')crates()});
+ else if(a=='adsel'){ADsel=b.dataset.u;adDraw()}else if(a=='adtab'){ADtab=b.dataset.tab;adDraw()}else if(a=='adev')adSend(b.dataset.c);else if(a=='adrf')adLoad();else if(a=='adback')crates()});
 addEventListener('keydown',e=>{if(e.target&&e.target.tagName=='INPUT'){if(e.key=='Enter'){if(e.target.id=='nm')goTitle();else e.target.blur()}return}const k=e.key.toLowerCase();K[k]=1;
  if(k==' '||k=='shift'){e.preventDefault();dash()}
  else if(state=='play'&&/^[1-9]$/.test(k))selectAbility(+k-1);
@@ -745,7 +761,7 @@ function hudUpd(){const p=G.p;let o='',oc='#fca5a5';
  if(G.mode=='zones'){if(G.zo)o='⚠ OUT OF ZONE'+(G.amb&&!G.amb.w?' · ☠ AMBUSH AHEAD':'');else{o='🔴 IN ZONE';oc='#86efac'}}
  else if(G.mode=='ext'){if(!G.ex){o='REACH LV 50 · '+Math.min(G.lv,50)+'/50';oc='#bae6fd'}else{o='🚀 EXTRACTING '+Math.floor(G.ex.t)+'/20s';oc='#6ee7b7'}}
  $('#obj').textContent=o;$('#obj').style.color=oc;$('#hp').style.width=Math.max(0,p.hp/p.max*100)+'%';$('#hpt').textContent=Math.ceil(Math.max(0,p.hp))+' / '+p.max;
- $('#xp').style.width=G.xp/G.need*100+'%';$('#lv').textContent='LV '+G.lv+(G.rb?' · REBIRTH '+G.rb:'');$('#tm').textContent=fmtT(G.t);$('#kl').textContent=G.kills+' kills';
+ $('#xp').style.width=G.xp/G.need*100+'%';$('#lv').textContent='LV '+G.lv+(G.rb?' · REBIRTH '+G.rb:'');$('#tm').textContent=fmtT(G.t);$('#kl').textContent=G.kills+' kills';const mm=G.adminMult||{dmg:1,enemy:1,reward:1},bits=[];if(mm.dmg!=1)bits.push('DMG '+mm.dmg+'×');if(mm.enemy!=1)bits.push('ENEMY '+mm.enemy+'×');if(mm.reward!=1)bits.push('REWARDS '+mm.reward+'×');$('#gmul').textContent=bits.join(' · ');
  $('#dash').style.setProperty('--p',(G.dcd>0?(1-Math.max(0,p.dcd)/G.dcd)*360:360)+'deg')}
 let last=0;
 function loop(ts){const rd=Math.min((ts-last)/1000||0,.033);last=ts;let dt=rd;G.punch*=Math.exp(-7*rd);G.hf-=rd*1.8;G.wf-=rd*3;
