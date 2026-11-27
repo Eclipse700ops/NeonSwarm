@@ -161,9 +161,9 @@ html,body{height:100%;margin:0;overflow:hidden;background:var(--bg);color:var(--
 
 /* admin panel */
 .adm h2{margin:0 0 4px}.adin{width:100%;box-sizing:border-box;padding:12px 14px;border-radius:12px;border:1px solid #ffffff2a;background:#ffffff0f;color:#fff;font:600 16px 'Outfit',sans-serif;margin:12px 0 4px;text-align:center}
-.adl{display:grid;gap:6px;margin:10px 0;max-height:34vh;overflow:auto;text-align:left}
-.adp{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;align-items:center;padding:9px 12px;border-radius:12px;border:1px solid #ffffff1f;background:#ffffff0d;color:#fff;font:700 14px 'Outfit',sans-serif;cursor:pointer;text-align:left}
-.adp.on{outline:2px solid #22d3ee;background:#22d3ee1a}.adp b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.adp small{grid-column:1/-1}
+.adl{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px;margin:10px 0;max-height:46vh;overflow:auto;text-align:left;align-content:start}.adl .adp.all{grid-column:1/-1}
+.adp{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;align-items:center;padding:7px 10px;border-radius:12px;border:1px solid #ffffff1f;background:#ffffff0d;color:#fff;font:700 14px 'Outfit',sans-serif;cursor:pointer;text-align:left}
+.adp.on{outline:2px solid #22d3ee;background:#22d3ee1a}.adp b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.adp small{grid-column:1/-1;font-size:11px}
 .adp .st{font-size:11px;padding:2px 8px;border-radius:999px;background:#ffffff14;color:#a5a3bd}.adp .st.play{background:#34d39922;color:#6ee7b7}
 .adev{display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:8px;margin-top:10px}.adev .btn{padding:12px 8px;font-size:14px}.adev .btn[disabled]{opacity:.35;cursor:not-allowed}
 .admsg{min-height:18px;margin:8px 0 2px;font-size:13px;color:#a5a3bd}
@@ -629,10 +629,10 @@ setInterval(()=>{if(state!='menu'||ov.hidden)return;if(Date.now()>=LBnext)lbFetc
 /* ---------- title screen: pick a username once ---------- */
 /* ===== LIVE PLAYERS + ADMIN EVENTS (Supabase: heartbeat / admin_players / admin_send) ===== */
 const EVN={boss:['👹','Boss'],mega:['☠️','Triple boss'],ring:['⭕','Surrounded'],rush:['🔺','Dorito rush'],tanks:['🛡️','Tank squad'],bombs:['💥','Bombs'],flank:['🌀','Flank'],swarm:['🐛','Swarm'],heal:['💚','Heal'],warp:['⏳','Time warp']};
-let ADQ=[],ADrows=null,ADmsg='',ADsel='',ADbusy=0,ADhb=0;
+let ADQ=[],ADq='',ADrows=null,ADmsg='',ADsel='',ADhb=0;
 const adStat=()=>{const pl=state=='play'&&!G.demo;return pl?{st:'play',m:G.mode,t:Math.floor(G.t),k:G.kills,rb:G.rb,lv:G.lv}:{st:state=='pause'||state=='lvl'||state=='dying'?state:'menu'}};
 async function adBeat(){if(!sbOn()||!P.name)return;try{const c=await sb('rpc/heartbeat',{p_uid:uid(),p_name:P.name,p_info:adStat()});if(Array.isArray(c))c.forEach(x=>ADQ.push({c:x,t:Date.now()}))}catch(e){}}
-setInterval(()=>{if(document.hidden)return;const pl=state=='play'&&!G.demo;if(Date.now()-ADhb>=(pl?3000:15000)){ADhb=Date.now();adBeat()}},1000);
+setInterval(()=>{if(document.hidden)return;const pl=state=='play'&&!G.demo;if(Date.now()-ADhb>=(pl?1000:15000)){ADhb=Date.now();adBeat()}},1000);
 function adDo(c){const p=G.p,ring=(ty,n,d)=>{for(let i=0;i<n;i++)spawn(ty,i/n*6.283+rnd(-.1,.1),d)};
  if(c=='boss'){toast('BOSS');sfx('boss');G.shake=14;spawn('b')}
  else if(c=='mega'){toast('TRIPLE BOSS');sfx('boss');G.shake=20;for(let i=0;i<3;i++)spawn('b',i/3*6.283+rnd(0,1),380)}
@@ -646,18 +646,19 @@ function adDo(c){const p=G.p,ring=(ty,n,d)=>{for(let i=0;i<n;i++)spawn(ty,i/n*6.
  else if(c=='warp'){toast('TIME WARP');sfx('boss');G.slow=3}}
 function adRun(){const now=Date.now();ADQ=ADQ.filter(x=>now-x.t<60000);if(ADQ.length&&state=='play'&&!G.demo)adDo(ADQ.shift().c)} // events wait in a queue while you're paused or choosing an upgrade
 const adChip=i=>{i=i||{};return i.st=='play'?['In run','play']:i.st=='pause'?['Paused','']:i.st=='dying'?['Died','']:i.st=='lvl'?['Upgrading','play']:['In menus','']};
-function adList(){const el=$('#adl');if(!el)return;const A=ADrows||[],live=A.filter(r=>r.info&&r.info.st=='play').length;
- el.innerHTML=`<button class="adp ${ADsel=='all'?'on':''}" data-a="adsel" data-u="all"><b>👥 Everyone in a run</b><span class="st play">${ADrows?live:"all"}</span></button>`+(A.length?A.map(r=>{const i=r.info||{},c=adChip(i),pl=i.st=='play',t=Math.floor(+i.t||0);return `<button class="adp ${ADsel==r.uid?'on':''}" data-a="adsel" data-u="${esc(r.uid)}"><b>${esc(r.n)}</b><span class="st ${c[1]}">${c[0]}</span><small>${pl?`${i.m=='zones'?'Zones':'Default'} · ${Math.floor(t/60)}:${String(t%60).padStart(2,'0')} · ${+i.k||0} kills · ${+i.rb||0} rebirths · LV ${+i.lv||1}`:'Not in a run'}</small></button>`}).join(''):ADrows?'<p class="note">Nobody else is online right now.</p>':'<p class="note">Press Refresh players to load the list.</p>')}
+function adList(){const el=$('#adl');if(!el)return;const all=ADrows||[],q=ADq.trim().toLowerCase(),A=q?all.filter(r=>String(r.n).toLowerCase().includes(q)):all,live=all.filter(r=>r.info&&r.info.st=='play').length;
+ el.innerHTML=`<button class="adp all ${ADsel=='all'?'on':''}" data-a="adsel" data-u="all"><b>👥 Everyone in a run</b><span class="st play">${ADrows?live:"all"}</span></button>`+(A.length?A.map(r=>{const i=r.info||{},c=adChip(i),pl=i.st=='play',t=Math.floor(+i.t||0);return `<button class="adp ${ADsel==r.uid?'on':''}" data-a="adsel" data-u="${esc(r.uid)}"><b>${esc(r.n)}</b><span class="st ${c[1]}">${c[0]}</span><small>${pl?`${i.m=='zones'?'Zones':'Default'} · ${Math.floor(t/60)}:${String(t%60).padStart(2,'0')} · ${+i.k||0} kills · ${+i.rb||0} rebirths · LV ${+i.lv||1}`:'Not in a run'}</small></button>`}).join(''):ADrows?'<p class="note">'+(q?'No players match that search.':'Nobody else is online right now.')+'</p>':'<p class="note">Press Refresh players to load the list.</p>')}
 function adDraw(){if(state!='admin')return;
  const A=ADrows||[],who=ADsel=='all'?'everyone in a run':(A.find(r=>r.uid==ADsel)||{}).n;
- ov.innerHTML=`<div class="box wide adm"><h2>🛠️ Admin <small>· ${ADrows?A.length+' online':'list not loaded'}</small></h2><p class="note">Pick a target, then press an event. The server is only contacted when you press an event or Refresh.</p><div class="adl" id="adl"></div>
+ ov.innerHTML=`<div class="box wide xl adm"><h2>🛠️ Admin <small>· ${ADrows?A.length+' online':'list not loaded'}</small></h2><p class="note">Pick a target, then press an event. The server is only contacted when you press an event or Refresh.</p>${A.length>8?`<input id="adq" class="adin" placeholder="Search ${A.length} players" value="${esc(ADq)}" autocomplete="off">`:''}<div class="adl" id="adl"></div>
  <div class="note">Target: <b>${who?esc(who):'none'}</b></div><div class="adev">${Object.entries(EVN).map(([k,v])=>`<button class="btn" data-a="adev" data-c="${k}">${v[0]} ${v[1]}</button>`).join('')}</div>
  <div class="admsg" id="adm">${esc(ADmsg)}</div><div class="row"><button class="btn alt" data-a="adrf">Refresh players</button><button class="btn alt" data-a="adback">Back</button></div></div>`;adList()}
-function admin(){state='admin';ADmsg='';ADsel='all';adDraw()}
+function admin(){state='admin';ADmsg='';ADsel='all';ADq='';adDraw()}
+ov.addEventListener('input',e=>{if(e.target.id=='adq'){ADq=e.target.value;adList()}});
 async function adLoad(){try{const r=await sb('rpc/admin_players',{});ADrows=Array.isArray(r)?r:[];ADmsg=''}catch(e){ADmsg=e.message=='404'?'Admin SQL not installed yet (404)':'Could not reach the server ('+e.message+')'}adDraw()}
-async function adSend(c){if(ADbusy)return;const r=(ADrows||[]).find(x=>x.uid==ADsel);if(ADsel!='all'&&!r){ADmsg='That player is not in the list: press Refresh players';const m=$('#adm');if(m)m.textContent=ADmsg;return}
- ADbusy=1;try{const n=await sb('rpc/admin_send',{p_uid:ADsel,p_cmd:c});ADmsg=ADsel=='all'?`Sent ${EVN[c][1]} to ${n} player${n==1?'':'s'}`:`Sent ${EVN[c][1]} to ${r.n}`}catch(e){ADmsg=e.message=='404'?'Admin SQL not installed yet (404)':'Send failed ('+e.message+')'}
- ADbusy=0;const m2=$('#adm');if(m2)m2.textContent=ADmsg}
+async function adSend(c){const r=(ADrows||[]).find(x=>x.uid==ADsel);if(ADsel!='all'&&!r){ADmsg='That player is not in the list: press Refresh players';const m=$('#adm');if(m)m.textContent=ADmsg;return}
+ try{const n=await sb('rpc/admin_send',{p_uid:ADsel,p_cmd:c});ADmsg=ADsel=='all'?`Sent ${EVN[c][1]} to ${n} player${n==1?'':'s'}`:`Sent ${EVN[c][1]} to ${r.n}`}catch(e){ADmsg=e.message=='404'?'Admin SQL not installed yet (404)':'Send failed ('+e.message+')'}
+ const m2=$('#adm');if(m2)m2.textContent=ADmsg}
 function title(){state='title';scr='title';hud.hidden=true;if(!G.demo)demoGame();const lock=!!(P.nl&&P.name);
  ov.innerHTML=`<div class="ttl"><div><h1 class="logo">NEON <span>SWARM</span></h1><div class="tag">Survive the swarm</div></div>
  <div class="nc"><label for="nm">Username</label><input id="nm" maxlength="12" autocomplete="off" spellcheck="false" placeholder="Username" value="${esc(P.name||'')}" ${lock?'readonly':''}>
