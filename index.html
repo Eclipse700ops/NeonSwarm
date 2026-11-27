@@ -629,7 +629,7 @@ setInterval(()=>{if(state!='menu'||ov.hidden)return;if(Date.now()>=LBnext)lbFetc
 /* ---------- title screen: pick a username once ---------- */
 /* ===== LIVE PLAYERS + ADMIN EVENTS (Supabase: heartbeat / admin_players / admin_send) ===== */
 const EVN={boss:['👹','Boss'],mega:['☠️','Triple boss'],ring:['⭕','Surrounded'],rush:['🔺','Dorito rush'],tanks:['🛡️','Tank squad'],bombs:['💥','Bombs'],flank:['🌀','Flank'],swarm:['🐛','Swarm'],heal:['💚','Heal'],warp:['⏳','Time warp']};
-let ADQ=[],ADpw='',ADrows=null,ADmsg='',ADsel='',ADbusy=0,ADhb=0;
+let ADQ=[],ADrows=null,ADmsg='',ADsel='',ADbusy=0,ADhb=0;
 const adStat=()=>{const pl=state=='play'&&!G.demo;return pl?{st:'play',m:G.mode,t:Math.floor(G.t),k:G.kills,rb:G.rb,lv:G.lv}:{st:state=='pause'||state=='lvl'||state=='dying'?state:'menu'}};
 async function adBeat(){if(!sbOn()||!P.name)return;try{const c=await sb('rpc/heartbeat',{p_uid:uid(),p_name:P.name,p_info:adStat()});if(Array.isArray(c))c.forEach(x=>ADQ.push({c:x,t:Date.now()}))}catch(e){}}
 setInterval(()=>{if(document.hidden)return;const pl=state=='play'&&!G.demo;if(Date.now()-ADhb>=(pl?3000:15000)){ADhb=Date.now();adBeat()}},1000);
@@ -647,20 +647,17 @@ function adDo(c){const p=G.p,ring=(ty,n,d)=>{for(let i=0;i<n;i++)spawn(ty,i/n*6.
 function adRun(){const now=Date.now();ADQ=ADQ.filter(x=>now-x.t<60000);if(ADQ.length&&state=='play'&&!G.demo)adDo(ADQ.shift().c)} // events wait in a queue while you're paused or choosing an upgrade
 const adChip=i=>{i=i||{};return i.st=='play'?['In run','play']:i.st=='pause'?['Paused','']:i.st=='dying'?['Died','']:i.st=='lvl'?['Upgrading','play']:['In menus','']};
 function adList(){const el=$('#adl');if(!el)return;const A=ADrows||[],live=A.filter(r=>r.info&&r.info.st=='play').length;
- el.innerHTML=`<button class="adp ${ADsel=='all'?'on':''}" data-a="adsel" data-u="all"><b>👥 Everyone in a run</b><span class="st play">${live}</span></button>`+(A.length?A.map(r=>{const i=r.info||{},c=adChip(i),pl=i.st=='play',t=Math.floor(+i.t||0);return `<button class="adp ${ADsel==r.uid?'on':''}" data-a="adsel" data-u="${esc(r.uid)}"><b>${esc(r.n)}</b><span class="st ${c[1]}">${c[0]}</span><small>${pl?`${i.m=='zones'?'Zones':'Default'} · ${Math.floor(t/60)}:${String(t%60).padStart(2,'0')} · ${+i.k||0} kills · ${+i.rb||0} rebirths · LV ${+i.lv||1}`:'Not in a run'}</small></button>`}).join(''):'<p class="note">Nobody else is online right now.</p>')}
+ el.innerHTML=`<button class="adp ${ADsel=='all'?'on':''}" data-a="adsel" data-u="all"><b>👥 Everyone in a run</b><span class="st play">${ADrows?live:"all"}</span></button>`+(A.length?A.map(r=>{const i=r.info||{},c=adChip(i),pl=i.st=='play',t=Math.floor(+i.t||0);return `<button class="adp ${ADsel==r.uid?'on':''}" data-a="adsel" data-u="${esc(r.uid)}"><b>${esc(r.n)}</b><span class="st ${c[1]}">${c[0]}</span><small>${pl?`${i.m=='zones'?'Zones':'Default'} · ${Math.floor(t/60)}:${String(t%60).padStart(2,'0')} · ${+i.k||0} kills · ${+i.rb||0} rebirths · LV ${+i.lv||1}`:'Not in a run'}</small></button>`}).join(''):ADrows?'<p class="note">Nobody else is online right now.</p>':'<p class="note">Press Refresh players to load the list.</p>')}
 function adDraw(){if(state!='admin')return;
- if(!ADpw){ov.innerHTML=`<div class="box adm"><h2>🛠️ Admin</h2><p class="note">Enter the admin password you set in the Supabase SQL.</p><input id="adpw" class="adin" type="password" autocomplete="off" placeholder="Admin password"><div class="admsg" id="adm">${esc(ADmsg)}</div><div class="row"><button class="btn" data-a="adin">Unlock</button><button class="btn alt" data-a="adback">Back</button></div></div>`;return}
  const A=ADrows||[],who=ADsel=='all'?'everyone in a run':(A.find(r=>r.uid==ADsel)||{}).n;
- ov.innerHTML=`<div class="box wide adm"><h2>🛠️ Admin <small>· ${A.length} online</small></h2><p class="note">Pick a target, then spawn an event in their game. Events wait in a queue if they're paused.</p><div class="adl" id="adl"></div>
- <div class="note">Target: <b>${who?esc(who):'none selected'}</b></div><div class="adev">${Object.entries(EVN).map(([k,v])=>`<button class="btn" data-a="adev" data-c="${k}" ${ADsel?'':'disabled'}>${v[0]} ${v[1]}</button>`).join('')}</div>
- <div class="admsg" id="adm">${esc(ADmsg)}</div><div class="row"><button class="btn alt" data-a="adrf">Refresh</button><button class="btn alt" data-a="adlock">Lock</button><button class="btn alt" data-a="adback">Back</button></div></div>`;adList()}
-function admin(){state='admin';ADrows=null;ADmsg='';ADsel='';adDraw();if(ADpw)adLoad(1)}
-async function adLoad(full){if(!ADpw)return;try{ADrows=await sb('rpc/admin_players',{p_pass:ADpw})||[];if(full||!$('#adl'))adDraw();else adList()}
- catch(e){const c=e.message;if(c=='400'){ADpw='';ADmsg='Wrong password'}else if(c=='404'){ADpw='';ADmsg='Admin SQL not installed yet (404)'}else ADmsg='Could not reach the server ('+c+')';adDraw()}}
-async function adSend(c){if(!ADsel||ADbusy)return;const m=$('#adm'),A=ADrows||[],r=A.find(x=>x.uid==ADsel);if(ADsel!='all'&&!r){if(m)m.textContent='That player went offline';return}
- ADbusy=1;try{const n=await sb('rpc/admin_send',{p_pass:ADpw,p_uid:ADsel,p_cmd:c});ADmsg=ADsel=='all'?`Sent ${EVN[c][1]} to ${n} player${n==1?'':'s'}`:`Sent ${EVN[c][1]} to ${r.n}`}catch(e){ADmsg='Send failed ('+e.message+')'}
+ ov.innerHTML=`<div class="box wide adm"><h2>🛠️ Admin <small>· ${ADrows?A.length+' online':'list not loaded'}</small></h2><p class="note">Pick a target, then press an event. The server is only contacted when you press an event or Refresh.</p><div class="adl" id="adl"></div>
+ <div class="note">Target: <b>${who?esc(who):'none'}</b></div><div class="adev">${Object.entries(EVN).map(([k,v])=>`<button class="btn" data-a="adev" data-c="${k}">${v[0]} ${v[1]}</button>`).join('')}</div>
+ <div class="admsg" id="adm">${esc(ADmsg)}</div><div class="row"><button class="btn alt" data-a="adrf">Refresh players</button><button class="btn alt" data-a="adback">Back</button></div></div>`;adList()}
+function admin(){state='admin';ADmsg='';ADsel='all';adDraw()}
+async function adLoad(){try{const r=await sb('rpc/admin_players',{});ADrows=Array.isArray(r)?r:[];ADmsg=''}catch(e){ADmsg=e.message=='404'?'Admin SQL not installed yet (404)':'Could not reach the server ('+e.message+')'}adDraw()}
+async function adSend(c){if(ADbusy)return;const r=(ADrows||[]).find(x=>x.uid==ADsel);if(ADsel!='all'&&!r){ADmsg='That player is not in the list: press Refresh players';const m=$('#adm');if(m)m.textContent=ADmsg;return}
+ ADbusy=1;try{const n=await sb('rpc/admin_send',{p_uid:ADsel,p_cmd:c});ADmsg=ADsel=='all'?`Sent ${EVN[c][1]} to ${n} player${n==1?'':'s'}`:`Sent ${EVN[c][1]} to ${r.n}`}catch(e){ADmsg=e.message=='404'?'Admin SQL not installed yet (404)':'Send failed ('+e.message+')'}
  ADbusy=0;const m2=$('#adm');if(m2)m2.textContent=ADmsg}
-setInterval(()=>{if(state=='admin'&&ADpw&&!document.hidden)adLoad()},4000);
 function title(){state='title';scr='title';hud.hidden=true;if(!G.demo)demoGame();const lock=!!(P.nl&&P.name);
  ov.innerHTML=`<div class="ttl"><div><h1 class="logo">NEON <span>SWARM</span></h1><div class="tag">Survive the swarm</div></div>
  <div class="nc"><label for="nm">Username</label><input id="nm" maxlength="12" autocomplete="off" spellcheck="false" placeholder="Username" value="${esc(P.name||'')}" ${lock?'readonly':''}>
@@ -683,7 +680,7 @@ $('#abilities').addEventListener('click',e=>{const b=e.target.closest('[data-abi
  ov.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b||b.disabled)return;au();const a=b.dataset.a;if(a!='pick'&&a!='play')sfx('ui');
  if(a=='play')start();else if(a=='go')goTitle();else if(a=='resume'){state='play';ov.hidden=true}
  else if(a=='crates'){armTab='crates';crates()}else if(a=='armtab'){armTab=b.dataset.tab;crates()}else if(a=='enemies')enemies();else if(a=='weapons')weaponsPage();else if(a=='lbtab'){LBt=b.dataset.t;menu()}else if(a=='open')openCrate(b.dataset.k,+b.dataset.n);else if(a=='mode'){P.mode=b.dataset.m;if(P.mode!='ext')LBt=P.mode;saveP();menu()}else if(a=='eq'){const i=b.dataset.id;if(i=='cy'||P.ls[i]){P.eq=i;saveP();crates()}}else if(a=='eqs'){const i=b.dataset.id;if(SK[i]&&skOwn(i)){P.sk=i;saveP();crates()}}else if(a=='kp'){kpo=!kpo;kpm='';kpv='';rst=0;crates()}else if(a=='kd')kd(b.dataset.d);else if(a=='kc'){kpv='';kpm='';kpShow()}else if(a=='ke')ke();else if(a=='back')scr=='over'?showOver():menu();else if(a=='menu')menu();else if(a=='quit')endRun(1)
- else if(a=='adin'){const v=$('#adpw');ADpw=v?v.value:'';ADmsg='';if(ADpw)adLoad(1);else adDraw()}else if(a=='adsel'){ADsel=b.dataset.u;adDraw()}else if(a=='adev')adSend(b.dataset.c);else if(a=='adrf')adLoad(1);else if(a=='adlock'){ADpw='';ADmsg='';admin()}else if(a=='adback')crates()});
+ else if(a=='adsel'){ADsel=b.dataset.u;adDraw()}else if(a=='adev')adSend(b.dataset.c);else if(a=='adrf')adLoad();else if(a=='adback')crates()});
 addEventListener('keydown',e=>{if(e.target&&e.target.tagName=='INPUT'){if(e.key=='Enter'){if(e.target.id=='nm')goTitle();else e.target.blur()}return}const k=e.key.toLowerCase();K[k]=1;
  if(k==' '||k=='shift'){e.preventDefault();dash()}
  else if(state=='play'&&/^[1-9]$/.test(k))selectAbility(+k-1);
