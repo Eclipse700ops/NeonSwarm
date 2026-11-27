@@ -158,6 +158,15 @@ html,body{height:100%;margin:0;overflow:hidden;background:var(--bg);color:var(--
 .nerr{min-height:16px;font-size:13px;color:#fda4af}
 @media(max-width:820px){.mg{grid-template-columns:minmax(0,1fr)}.mh{justify-content:center;text-align:center}.who{justify-content:center}.tag{letter-spacing:5px}}
 @media(max-width:420px){.lb li{gap:6px;padding:6px 8px}.lb li b{min-width:48px}.lb li em{min-width:60px}}
+
+/* admin panel */
+.adm h2{margin:0 0 4px}.adin{width:100%;box-sizing:border-box;padding:12px 14px;border-radius:12px;border:1px solid #ffffff2a;background:#ffffff0f;color:#fff;font:600 16px 'Outfit',sans-serif;margin:12px 0 4px;text-align:center}
+.adl{display:grid;gap:6px;margin:10px 0;max-height:34vh;overflow:auto;text-align:left}
+.adp{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;align-items:center;padding:9px 12px;border-radius:12px;border:1px solid #ffffff1f;background:#ffffff0d;color:#fff;font:700 14px 'Outfit',sans-serif;cursor:pointer;text-align:left}
+.adp.on{outline:2px solid #22d3ee;background:#22d3ee1a}.adp b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.adp small{grid-column:1/-1}
+.adp .st{font-size:11px;padding:2px 8px;border-radius:999px;background:#ffffff14;color:#a5a3bd}.adp .st.play{background:#34d39922;color:#6ee7b7}
+.adev{display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:8px;margin-top:10px}.adev .btn{padding:12px 8px;font-size:14px}.adev .btn[disabled]{opacity:.35;cursor:not-allowed}
+.admsg{min-height:18px;margin:8px 0 2px;font-size:13px;color:#a5a3bd}
 </style>
 </head>
 <body>
@@ -179,7 +188,7 @@ const cv=$('#c'),x=cv.getContext('2d'),ov=$('#ov'),hud=$('#hud');
 let W,H,D,G,state='menu',scr='menu',K={},J={on:false},opts=[],cam={x:0,y:0,z:1};
 const newSave=(name,nl)=>({cores:60,inv:{},pity:{std:0,pre:0,las:0},best:0,runs:0,ls:{},eq:'cy',mode:'def',kills:0,sk:'cy',sks:{},name:name||'',nl:nl||0,bm:{},lb:{def:[],zones:[]}});
 let P=newSave();
-let kpo=0,kpv='',kpm='',armTab='crates';const DEV_CODE='1337',ALL_CODE='4242',RESET_CODE='0000',LB_CODE='9999';let rst=0;
+let kpo=0,kpv='',kpm='',armTab='crates';const DEV_CODE='1337',ALL_CODE='4242',RESET_CODE='0000',LB_CODE='9999',ADM_CODE='7777';let rst=0;
 const SAVE_KEY='neonswarm3'; // bumped for release so everyone starts on a fresh save; bump again to wipe all saves
 try{['neonswarm1','neonswarm2'].forEach(k=>localStorage.removeItem(k));const s=JSON.parse(localStorage.getItem(SAVE_KEY));if(s)P={...P,...s}}catch(e){}
 P.pity.las=P.pity.las||0;P.sks=P.sks||{};P.kills=P.kills||0;P.sk=P.sk||'cy';P.lb=P.lb||{def:[],zones:[]};P.bm=P.bm||{};P.name=P.name||'';P.nl=P.nl||0;
@@ -356,6 +365,7 @@ function kd(d){kpm='';if(kpv.length<8)kpv+=d;kpShow()}
 function ke(){const v=kpv;kpv='';
  if(v==DEV_CODE){rst=0;const had=P.ls.rbw&&P.sks.rbw;P.ls.rbw=1;P.sks.rbw=1;if(had)kpm='Already unlocked';else{P.eq='rbw';P.sk='rbw';saveP();sfx('reveal',4);kpm='🌈 Dev Rainbow laser + skin unlocked!'}kpo=1;crates()}
  else if(v==ALL_CODE){rst=0;MOD.forEach((m,i)=>P.inv[i]=10);LZL.forEach(l=>{P.ls[l[0]]=1;P.sks[l[0]]=1});saveP();sfx('reveal',4);kpm='🎁 Armory unlocked!';kpo=1;crates()}
+ else if(v==ADM_CODE){rst=0;kpo=0;admin()}
  else if(v==LB_CODE){if(rst!=2){rst=2;kpm='ENTER AGAIN TO RESET LEADERBOARD';kpShow();return}rst=0;lbReset()}
  else if(v==RESET_CODE){if(rst!=1){rst=1;kpm='ENTER AGAIN TO RESET';kpShow();return}rst=0;P=newSave(P.name,P.nl);saveP();sfx('over');kpm='Progress reset';kpo=1;crates()}
  else{rst=0;kpm='WRONG CODE';kpShow()}}
@@ -617,6 +627,40 @@ async function lbReset(){P.lb={def:[],zones:[]};P.bm={};LBd={};saveP();let msg='
 ov.addEventListener('input',e=>{if(e.target.id!='nm'||e.target.readOnly)return;const v=liveName(e.target.value);if(v!=e.target.value)e.target.value=v;const n=$('#nme');if(n)n.textContent=''});
 setInterval(()=>{if(state!='menu'||ov.hidden)return;if(Date.now()>=LBnext)lbFetch();else lbStatus()},1000);
 /* ---------- title screen: pick a username once ---------- */
+/* ===== LIVE PLAYERS + ADMIN EVENTS (Supabase: heartbeat / admin_players / admin_send) ===== */
+const EVN={boss:['👹','Boss'],mega:['☠️','Triple boss'],ring:['⭕','Surrounded'],rush:['🔺','Dorito rush'],tanks:['🛡️','Tank squad'],bombs:['💥','Bombs'],flank:['🌀','Flank'],swarm:['🐛','Swarm'],heal:['💚','Heal'],warp:['⏳','Time warp']};
+let ADQ=[],ADpw='',ADrows=null,ADmsg='',ADsel='',ADbusy=0,ADhb=0;
+const adStat=()=>{const pl=state=='play'&&!G.demo;return pl?{st:'play',m:G.mode,t:Math.floor(G.t),k:G.kills,rb:G.rb,lv:G.lv}:{st:state=='pause'||state=='lvl'||state=='dying'?state:'menu'}};
+async function adBeat(){if(!sbOn()||!P.name)return;try{const c=await sb('rpc/heartbeat',{p_uid:uid(),p_name:P.name,p_info:adStat()});if(Array.isArray(c))c.forEach(x=>ADQ.push({c:x,t:Date.now()}))}catch(e){}}
+setInterval(()=>{if(document.hidden)return;const pl=state=='play'&&!G.demo;if(Date.now()-ADhb>=(pl?3000:15000)){ADhb=Date.now();adBeat()}},1000);
+function adDo(c){const p=G.p,ring=(ty,n,d)=>{for(let i=0;i<n;i++)spawn(ty,i/n*6.283+rnd(-.1,.1),d)};
+ if(c=='boss'){toast('BOSS');sfx('boss');G.shake=14;spawn('b')}
+ else if(c=='mega'){toast('TRIPLE BOSS');sfx('boss');G.shake=20;for(let i=0;i<3;i++)spawn('b',i/3*6.283+rnd(0,1),380)}
+ else if(c=='ring'){toast('SURROUNDED');sfx('ring');G.shake=8;for(let i=0;i<26;i++)spawn(RT[Math.random()*RT.length|0],i/26*6.283,320)}
+ else if(c=='rush'){toast('DORITO RUSH');sfx('ring');G.shake=6;ring('d',40,420)}
+ else if(c=='tanks'){toast('TANK SQUAD');sfx('ring');G.shake=10;ring('t',8,340)}
+ else if(c=='bombs'){toast('BOMBS');sfx('ring');G.shake=8;ring('x',20,360)}
+ else if(c=='flank')flank({x:p.x,y:p.y});
+ else if(c=='swarm'){toast('SWARM');sfx('ring');G.shake=8;for(let i=0;i<60;i++)spawn(i%5?'g':'o',rnd(0,6.283),rnd(380,520))}
+ else if(c=='heal'){p.hp=p.max;toast('HEALED');sfx('ui')}
+ else if(c=='warp'){toast('TIME WARP');sfx('boss');G.slow=3}}
+function adRun(){const now=Date.now();ADQ=ADQ.filter(x=>now-x.t<60000);if(ADQ.length&&state=='play'&&!G.demo)adDo(ADQ.shift().c)} // events wait in a queue while you're paused or choosing an upgrade
+const adChip=i=>{i=i||{};return i.st=='play'?['In run','play']:i.st=='pause'?['Paused','']:i.st=='dying'?['Died','']:i.st=='lvl'?['Upgrading','play']:['In menus','']};
+function adList(){const el=$('#adl');if(!el)return;const A=ADrows||[],live=A.filter(r=>r.info&&r.info.st=='play').length;
+ el.innerHTML=`<button class="adp ${ADsel=='all'?'on':''}" data-a="adsel" data-u="all"><b>👥 Everyone in a run</b><span class="st play">${live}</span></button>`+(A.length?A.map(r=>{const i=r.info||{},c=adChip(i),pl=i.st=='play',t=Math.floor(+i.t||0);return `<button class="adp ${ADsel==r.uid?'on':''}" data-a="adsel" data-u="${esc(r.uid)}"><b>${esc(r.n)}</b><span class="st ${c[1]}">${c[0]}</span><small>${pl?`${i.m=='zones'?'Zones':'Default'} · ${Math.floor(t/60)}:${String(t%60).padStart(2,'0')} · ${+i.k||0} kills · ${+i.rb||0} rebirths · LV ${+i.lv||1}`:'Not in a run'}</small></button>`}).join(''):'<p class="note">Nobody else is online right now.</p>')}
+function adDraw(){if(state!='admin')return;
+ if(!ADpw){ov.innerHTML=`<div class="box adm"><h2>🛠️ Admin</h2><p class="note">Enter the admin password you set in the Supabase SQL.</p><input id="adpw" class="adin" type="password" autocomplete="off" placeholder="Admin password"><div class="admsg" id="adm">${esc(ADmsg)}</div><div class="row"><button class="btn" data-a="adin">Unlock</button><button class="btn alt" data-a="adback">Back</button></div></div>`;return}
+ const A=ADrows||[],who=ADsel=='all'?'everyone in a run':(A.find(r=>r.uid==ADsel)||{}).n;
+ ov.innerHTML=`<div class="box wide adm"><h2>🛠️ Admin <small>· ${A.length} online</small></h2><p class="note">Pick a target, then spawn an event in their game. Events wait in a queue if they're paused.</p><div class="adl" id="adl"></div>
+ <div class="note">Target: <b>${who?esc(who):'none selected'}</b></div><div class="adev">${Object.entries(EVN).map(([k,v])=>`<button class="btn" data-a="adev" data-c="${k}" ${ADsel?'':'disabled'}>${v[0]} ${v[1]}</button>`).join('')}</div>
+ <div class="admsg" id="adm">${esc(ADmsg)}</div><div class="row"><button class="btn alt" data-a="adrf">Refresh</button><button class="btn alt" data-a="adlock">Lock</button><button class="btn alt" data-a="adback">Back</button></div></div>`;adList()}
+function admin(){state='admin';ADrows=null;ADmsg='';ADsel='';adDraw();if(ADpw)adLoad(1)}
+async function adLoad(full){if(!ADpw)return;try{ADrows=await sb('rpc/admin_players',{p_pass:ADpw})||[];if(full||!$('#adl'))adDraw();else adList()}
+ catch(e){const c=e.message;if(c=='400'){ADpw='';ADmsg='Wrong password'}else if(c=='404'){ADpw='';ADmsg='Admin SQL not installed yet (404)'}else ADmsg='Could not reach the server ('+c+')';adDraw()}}
+async function adSend(c){if(!ADsel||ADbusy)return;const m=$('#adm'),A=ADrows||[],r=A.find(x=>x.uid==ADsel);if(ADsel!='all'&&!r){if(m)m.textContent='That player went offline';return}
+ ADbusy=1;try{const n=await sb('rpc/admin_send',{p_pass:ADpw,p_uid:ADsel,p_cmd:c});ADmsg=ADsel=='all'?`Sent ${EVN[c][1]} to ${n} player${n==1?'':'s'}`:`Sent ${EVN[c][1]} to ${r.n}`}catch(e){ADmsg='Send failed ('+e.message+')'}
+ ADbusy=0;const m2=$('#adm');if(m2)m2.textContent=ADmsg}
+setInterval(()=>{if(state=='admin'&&ADpw&&!document.hidden)adLoad()},4000);
 function title(){state='title';scr='title';hud.hidden=true;if(!G.demo)demoGame();const lock=!!(P.nl&&P.name);
  ov.innerHTML=`<div class="ttl"><div><h1 class="logo">NEON <span>SWARM</span></h1><div class="tag">Survive the swarm</div></div>
  <div class="nc"><label for="nm">Username</label><input id="nm" maxlength="12" autocomplete="off" spellcheck="false" placeholder="Username" value="${esc(P.name||'')}" ${lock?'readonly':''}>
@@ -638,7 +682,8 @@ function menu(){if(!P.name||!P.nl){title();return}
 $('#abilities').addEventListener('click',e=>{const b=e.target.closest('[data-ability]');if(b&&!b.disabled)selectAbility(+b.dataset.ability)});
  ov.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b||b.disabled)return;au();const a=b.dataset.a;if(a!='pick'&&a!='play')sfx('ui');
  if(a=='play')start();else if(a=='go')goTitle();else if(a=='resume'){state='play';ov.hidden=true}
- else if(a=='crates'){armTab='crates';crates()}else if(a=='armtab'){armTab=b.dataset.tab;crates()}else if(a=='enemies')enemies();else if(a=='weapons')weaponsPage();else if(a=='lbtab'){LBt=b.dataset.t;menu()}else if(a=='open')openCrate(b.dataset.k,+b.dataset.n);else if(a=='mode'){P.mode=b.dataset.m;if(P.mode!='ext')LBt=P.mode;saveP();menu()}else if(a=='eq'){const i=b.dataset.id;if(i=='cy'||P.ls[i]){P.eq=i;saveP();crates()}}else if(a=='eqs'){const i=b.dataset.id;if(SK[i]&&skOwn(i)){P.sk=i;saveP();crates()}}else if(a=='kp'){kpo=!kpo;kpm='';kpv='';rst=0;crates()}else if(a=='kd')kd(b.dataset.d);else if(a=='kc'){kpv='';kpm='';kpShow()}else if(a=='ke')ke();else if(a=='back')scr=='over'?showOver():menu();else if(a=='menu')menu();else if(a=='quit')endRun(1)});
+ else if(a=='crates'){armTab='crates';crates()}else if(a=='armtab'){armTab=b.dataset.tab;crates()}else if(a=='enemies')enemies();else if(a=='weapons')weaponsPage();else if(a=='lbtab'){LBt=b.dataset.t;menu()}else if(a=='open')openCrate(b.dataset.k,+b.dataset.n);else if(a=='mode'){P.mode=b.dataset.m;if(P.mode!='ext')LBt=P.mode;saveP();menu()}else if(a=='eq'){const i=b.dataset.id;if(i=='cy'||P.ls[i]){P.eq=i;saveP();crates()}}else if(a=='eqs'){const i=b.dataset.id;if(SK[i]&&skOwn(i)){P.sk=i;saveP();crates()}}else if(a=='kp'){kpo=!kpo;kpm='';kpv='';rst=0;crates()}else if(a=='kd')kd(b.dataset.d);else if(a=='kc'){kpv='';kpm='';kpShow()}else if(a=='ke')ke();else if(a=='back')scr=='over'?showOver():menu();else if(a=='menu')menu();else if(a=='quit')endRun(1)
+ else if(a=='adin'){const v=$('#adpw');ADpw=v?v.value:'';ADmsg='';if(ADpw)adLoad(1);else adDraw()}else if(a=='adsel'){ADsel=b.dataset.u;adDraw()}else if(a=='adev')adSend(b.dataset.c);else if(a=='adrf')adLoad(1);else if(a=='adlock'){ADpw='';ADmsg='';admin()}else if(a=='adback')crates()});
 addEventListener('keydown',e=>{if(e.target&&e.target.tagName=='INPUT'){if(e.key=='Enter'){if(e.target.id=='nm')goTitle();else e.target.blur()}return}const k=e.key.toLowerCase();K[k]=1;
  if(k==' '||k=='shift'){e.preventDefault();dash()}
  else if(state=='play'&&/^[1-9]$/.test(k))selectAbility(+k-1);
@@ -712,7 +757,7 @@ function loop(ts){const rd=Math.min((ts-last)/1000||0,.033);last=ts;let dt=rd;G.
  if(state=='play'||state=='dying'||G.demo){const k=1-Math.exp(-7*rd);cam.x+=(p.x+p.vx*.2-cam.x)*k;cam.y+=(p.y+p.vy*.2-cam.y)*k}
  else if(state=='menu'||state=='crates'||state=='opening'||state=='enemies'||state=='weapons'||state=='title'){cam.x+=40*rd;cam.y+=15*rd}
  const tz=(state=='dying'?1.18:1)+G.punch-(p.dash>0?.1:0);cam.z+=(tz-cam.z)*(1-Math.exp(-10*rd));
- if(G.demo&&G.t>45)demoGame();draw();if(!hud.hidden)hudUpd();requestAnimationFrame(loop)}
+ if(G.demo&&G.t>45)demoGame();if(ADQ.length)adRun();draw();if(!hud.hidden)hudUpd();requestAnimationFrame(loop)}
 rs();newGame();title();requestAnimationFrame(loop);
 </script>
 </body>
